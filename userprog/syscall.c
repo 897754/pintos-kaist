@@ -119,29 +119,7 @@ syscall_handler (struct intr_frame *f) {
 	}
 }
 
-int wait (pid_t pid)
-{
-	return process_wait(pid);
-}
 
-pid_t fork (const char *thread_name, struct intr_frame *f)
-{
-	pid_t ret = process_fork(thread_name, f);
-
-	return ret;
-}
-int exec (const char *cmd_line)
-{
-	char *line = palloc_get_page(PAL_ZERO);
-
-	strlcpy(line, cmd_line, PGSIZE);
-	int ret = process_exec(line);
-
-	if(ret == -1)
-		exit(-1);
-		
-	return ret;
-}
 
 #pragma region Finished
 void halt (void)
@@ -155,12 +133,31 @@ void exit (int status)
 	
 	cur->thread_exit_status = status;
 	if(cur->parent)
-	{
-		//printf("exitSTatus changed\n");
 		cur->parent->childrenExitStatus = status;
-	}
-	// printf("%s: exit(%d)", cur->name, status);
 	thread_exit();
+}
+
+pid_t fork (const char *thread_name, struct intr_frame *f)
+{
+	return process_fork(thread_name, f);
+}
+
+int exec (const char *cmd_line)
+{
+	char *line = palloc_get_page(PAL_ZERO);
+
+	strlcpy(line, cmd_line, PGSIZE);
+	int ret = process_exec(line);
+
+	if(ret == -1)
+		exit(-1);
+		
+	return ret;
+}
+
+int wait (pid_t pid)
+{
+	return process_wait(pid);
 }
 
 bool create (const char *file, unsigned initial_size)
@@ -171,22 +168,18 @@ bool create (const char *file, unsigned initial_size)
 
 bool remove (const char *file)
 {
-	if(CheckFileDir(file, thread_current()->pml4)) exit(-1);
 	return filesys_remove(file);
 }
 
 int open (const char *file)
 {
 	struct thread* cur = thread_current();
-	//printf("11111\n");
+
 	if(CheckFileDir(file, cur->pml4))	exit(-1);
-	//printf("22222\n");
+
 	struct file *retFile = filesys_open(file);
-	//printf("33333\n");
-	//printf("FILE : %p\n", retFile);
 	if(!retFile) return -1;
-	//printf("44444\n");
-	
+
 	for(int i = 3; i < FDMAXCOUNT; i++)
 	{
 		if(cur->fds[i] == NULL)
@@ -207,12 +200,9 @@ int filesize (int fd)
 int read (int fd, void *buffer, unsigned size)
 {
 	if(fd < 2 || fd >= FDMAXCOUNT) return -1;
+
 	struct file* file = thread_current()->fds[fd];
 	if(!file) return -1;
-
-	//if(is_user_vaddr(buffer)) return -1;
-	if(CheckFileDir(buffer, thread_current()->pml4)) exit(-1);
-
 
 	return file_read(file, buffer, size);
 }
@@ -227,14 +217,11 @@ int write (int fd, const void *buffer, unsigned size)
 	}
 	
 	if(fd < 2 || fd >= FDMAXCOUNT) exit(-1);
-	if(CheckFileDir(buffer, thread_current()->pml4)) exit(-1);
 
 	struct file * curFile = thread_current()->fds[fd];
 	if(!curFile) exit(-1);
 
-	off_t retSize = file_write(curFile, buffer, size);
-	//printf("%d\n", retSize);
-	return retSize;
+	return file_write(curFile, buffer, size);
 }
 
 void seek (int fd, unsigned position)
@@ -258,7 +245,8 @@ void close (int fd)
 	if(fd < 2 || fd >= FDMAXCOUNT) return;
 	struct thread* cur = thread_current();
 
-	file_close(cur->fds[fd]);
+	if(cur->denied_file == cur->fds[fd])
+		file_close(cur->fds[fd]);
 	cur->fds[fd] = NULL;
 }
 

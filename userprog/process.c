@@ -280,18 +280,13 @@ process_wait (tid_t child_tid) {
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {
-	// struct thread *curr = thread_current ();
-	/* TODO: Your code goes here.
-	 * TODO: Implement process termination message (see
-	 * TODO: project2/process_termination.html).
-	 * TODO: We recommend you to implement process resource cleanup here. */
-	struct thread *cur = thread_current(); 
+	struct thread *cur = thread_current();
+
 	if (cur->is_user)
 		printf("%s: exit(%d)\n", cur->name, cur->thread_exit_status);
 
 	process_cleanup ();
 	
-		
 	struct thread* parent = cur->parent;
 	if(parent != NULL && parent->waitingThread == cur->tid)
 	{
@@ -553,7 +548,16 @@ load (const char *file_name, struct intr_frame *if_) {
 
 done:
 	/* We arrive here whether the load is successful or not. */
-	file_close (file);
+	//file_close (file);
+	if(file != NULL)
+	{
+		struct thread* cur = thread_current();
+		if(cur->parent && cur->parent->denied_file != file)
+		{
+			cur->denied_file = file;
+			file_deny_write(file);
+		}
+	}
 	return success;
 }
 

@@ -652,6 +652,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 
 	t->thread_exit_status = 0;
 	t->is_user = false;
+	t->denied_file = NULL;
 #endif
 
 

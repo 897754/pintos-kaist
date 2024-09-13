@@ -113,6 +113,7 @@ struct thread {
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
 	struct file* fds[FDMAXCOUNT];
+	struct file* denied_file;
 	int thread_exit_status;
 	bool is_user;
 #endif
