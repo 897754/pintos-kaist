@@ -130,12 +130,13 @@ test_mlfqs_load_avg (void)
   ASSERT (thread_mlfqs);
 
   start_time = timer_ticks ();
+  msg("my name: %s", thread_current()->name);
   msg ("Starting %d load threads...", THREAD_CNT);
   for (i = 0; i < THREAD_CNT; i++) 
     {
       char name[16];
       snprintf(name, sizeof name, "load %d", i);
-      thread_create (name, PRI_DEFAULT, load_thread, (void *) i);
+      thread_create (name, PRI_MAX, load_thread, (void *) i);
     }
   msg ("Starting threads took %d seconds.",
        timer_elapsed (start_time) / TIMER_FREQ);
