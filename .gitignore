@@ -1,6 +1,13 @@
+*.output
 *.o
 *.O
-*.d
-*.output
-*.errors
 *.result
+*.errors
+*.bin
+*.d
+*.s
+*.dsk
+Makefile
+results
+
+userprog/build/
