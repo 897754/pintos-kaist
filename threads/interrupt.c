@@ -110,20 +110,22 @@ static void pic_end_of_interrupt (int irq);
 /* Interrupt handlers. */
 void intr_handler (struct intr_frame *args);
 
-/* 현재 인터럽트 상태를 반환합니다. */
+/* Returns the current interrupt status. */
 enum intr_level
 intr_get_level (void) {
 	uint64_t flags;
 
-	/* 플래그 레지스터를 프로세서 스택에 푸시한 다음, 스택에서 값을 꺼내 `flags`에 저장합니다.
-       [IA32-v2b] "PUSHF"와 "POP", 그리고 [IA32-v3a] 5.8.1 "Masking Maskable Hardware Interrupts"를 참조하세요. */
+	/* Push the flags register on the processor stack, then pop the
+	   value off the stack into `flags'.  See [IA32-v2b] "PUSHF"
+	   and "POP" and [IA32-v3a] 5.8.1 "Masking Maskable Hardware
+	   Interrupts". */
 	asm volatile ("pushfq; popq %0" : "=g" (flags));
 
 	return flags & FLAG_IF ? INTR_ON : INTR_OFF;
 }
 
-/* LEVEL에 따라 인터럽트를 활성화하거나 비활성화하고,
-   이전 인터럽트 상태를 반환합니다. */
+/* Enables or disables interrupts as specified by LEVEL and
+   returns the previous interrupt status. */
 enum intr_level
 intr_set_level (enum intr_level level) {
 	return level == INTR_ON ? intr_enable () : intr_disable ();
@@ -144,7 +146,7 @@ intr_enable (void) {
 	return old_level;
 }
 
-/* 인터럽트를 비활성화하고, 이전 인터럽트 상태를 반환합니다. */
+/* Disables interrupts and returns the previous interrupt status. */
 enum intr_level
 intr_disable (void) {
 	enum intr_level old_level = intr_get_level ();
@@ -257,8 +259,10 @@ intr_context (void) {
 	return in_external_intr;
 }
 
-/* 외부 인터럽트 처리 중, 인터럽트 핸들러가 인터럽트에서 반환하기 직전에 새 프로세스에 양보하도록 지시합니다.
- * 다른 시간에는 호출할 수 없습니다. */
+/* During processing of an external interrupt, directs the
+   interrupt handler to yield to a new process just before
+   returning from the interrupt.  May not be called at any other
+   time. */
 void
 intr_yield_on_return (void) {
 	ASSERT (intr_context ());

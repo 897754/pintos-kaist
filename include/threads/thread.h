@@ -28,9 +28,6 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
-#define FDMAXCOUNT 16
-#define USERPROG
-
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -94,28 +91,13 @@ struct thread {
 	enum thread_status status;          /* Thread state. */
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
-	int64_t wakeup;
-	struct list lock_list;
-	struct lock *waiting_lock;
-	int nice;
-	int recent_cpu;
-	
+
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
-	struct list_elem allelem;
 
-	int childTids[FDMAXCOUNT];
-	int childrenExitStatus;
-	struct thread* parent;
-	tid_t waitingThread;
-	
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
-	struct file* fds[FDMAXCOUNT];
-	struct file* denied_file;
-	int thread_exit_status;
-	bool is_user;
 #endif
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
@@ -124,7 +106,6 @@ struct thread {
 
 	/* Owned by thread.c. */
 	struct intr_frame tf;               /* Information for switching */
-	struct intr_frame user_if;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */
 };
 
@@ -144,8 +125,6 @@ tid_t thread_create (const char *name, int priority, thread_func *, void *);
 
 void thread_block (void);
 void thread_unblock (struct thread *);
-void thread_sleep (int64_t);
-void thread_awake (int64_t);
 
 struct thread *thread_current (void);
 tid_t thread_tid (void);
@@ -157,20 +136,11 @@ void thread_yield (void);
 int thread_get_priority (void);
 void thread_set_priority (int);
 
-void calculate_priority (void);
-void calculate_tick_recent_cpu (struct thread *);
-void calculate_recent_cpu_load_avg (void);
 int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
-static bool priority_ful (const struct list_elem *, const struct list_elem *, void *aux); 
 
 #endif /* threads/thread.h */
-
-
-bool thread_has_child(tid_t tid);
-bool thread_check_destroy(tid_t tid);
-struct thread* get_thread_by_tid(tid_t tid);
