@@ -111,25 +111,11 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	// if (thread_current()->children[i] == -1)
 	// 	thread_current()->children[i] = child_pid;
 	// else set_code_and_exit(-1);
-
+	 
 	struct semaphore sema;
 	sema_init(&sema,0);
 	thread_current()->wait_sema = &sema;
-	sema_down(&sema);	
-	
-	struct list_elem *e;
-	struct thread *t = NULL;
-	for (e =list_begin (&thread_current()->child_list); e != list_end (&thread_current()->child_list); e = list_next (e))
-	{
-		t = list_entry(e, struct thread, child_elem);
-		if (t->tid == child_pid) break;
-	}
-
-	if (t->exit_code == -1){
-		list_remove(&t->child_elem);
-		sema_up(&t->wait_sema);
-		return -1;	
-	}	
+	sema_down(&sema);		
 	
 	return child_pid;
 }
@@ -152,7 +138,7 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
-	newpage = palloc_get_page (PAL_USER);
+	newpage = palloc_get_page (0);
 	if (newpage == NULL)
 		return TID_ERROR;
 
@@ -226,7 +212,6 @@ __do_fork (void *aux) {
 	if (succ)
 		do_iret (&if_);
 error:
-	current->exit_code = -1;
 	sema_up(parent->wait_sema);
 	thread_exit ();
 }
@@ -345,8 +330,22 @@ process_exit (void) {
 
 		list_remove(&curr->child_elem);
 
-		if (thread_current()->is_waited)
+		if (thread_current()->exec_file)
+			file_close(thread_current()->exec_file);
+			// file_allow_write(thread_current()->exec_file);	
+		thread_current()->exec_file = NULL;
+
+		// if(thread_current()->dead_list != NULL){
+		// 	for (int i = 0; i < 32; i ++){
+		// 		if (thread_current()->dead_list[i] != NULL)
+		// 			palloc_free_page(thread_current()->dead_list[i]);
+		// 	}
+		// }
+
+		if (thread_current()->is_waited){
 			sema_up(thread_current()->parent->wait_sema);
+		}
+
 	}
 	process_cleanup ();
 }
@@ -487,9 +486,6 @@ load (const char *file_name, struct intr_frame *if_) {
 		printf ("load: %s: open failed\n", argument);
 		goto done;
 	}
-	
-	file_deny_write(file);
-	thread_current()->exec_file = file;
 
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -587,9 +583,13 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	success = true;
 
+	thread_current()->exec_file = file;
+	file_deny_write(thread_current()->exec_file);
+
 done:
 	/* We arrive here whether the load is successful or not. */
-	file_close (file);
+	if (!success)
+		file_close (file);
 	return success;
 }
 
