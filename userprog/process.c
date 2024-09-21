@@ -68,7 +68,7 @@ process_create_initd (const char *file_name) {
 		// thread_current()->children[i] = tid;
 
 		int i = 0;
-		while(thread_current()->children[i] != -1 && i < 32) i++;
+		while(thread_current()->children[i] != -1 && i < CHILD_LIMIT) i++;
 		if (thread_current()->children[i] == -1)
 			thread_current()->children[i] = tid;
 		else printf("CHILDREN LIST IS FULL!!");
@@ -114,12 +114,12 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	if (child_pid == -1) return -1;
 	
 	int i = 0;
-	while(thread_current()->children[i] != -1 && i < 32) 
+	while(thread_current()->children[i] != -1 && i < CHILD_LIMIT) 
 	{
 		i++;
 	}
 	
-	if (i < 32)
+	if (i < CHILD_LIMIT)
 		thread_current()->children[i] = child_pid;
 	else printf("CHILDREN LIST IS FULL!!");
 	 
@@ -217,10 +217,10 @@ __do_fork (void *aux) {
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
 	process_init ();
-	memcpy(current->fd_table, parent->fd_table, 32 * sizeof(void*));
+	memcpy(current->fd_table, parent->fd_table, FD_LIMIT * sizeof(void*));
 	// memcpy(current->children, parent->children, 64 * sizeof(tid_t));
 
-	for (int i = 3; i < 32; i++){
+	for (int i = 3; i < FD_LIMIT; i++){
 		if (parent->fd_table[i] != NULL)
 			current->fd_table[i] = file_duplicate((struct file*)parent->fd_table[i]);
 	}
@@ -289,7 +289,7 @@ process_wait (tid_t child_tid UNUSED) {
 	// memcpy(children, thread_current()->children, sizeof(tid_t) * 64);
 
 	
-	for (int i = 0; i < 32; i ++){
+	for (int i = 0; i < CHILD_LIMIT; i ++){
 		if (thread_current()->children[i] == child_tid)
 		{
 			// struct thread* child = get_thread_by_tid(child_tid);
@@ -347,7 +347,7 @@ process_exit (void) {
 
 	curr->exec_file = NULL;
 
-	for (int i = 3; i<32; i++){
+	for (int i = 3; i < FD_LIMIT; i++){
 		if(curr->fd_table[i] != NULL)
 			file_close(curr->fd_table[i]);
 	}

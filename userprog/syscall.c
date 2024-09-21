@@ -153,7 +153,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			
 			// 64->32 반영 안 해줘서 터짐
 			int i = 0;
-			while(thread_current()->fd_table[i] && i < 32) i++;
+			while(thread_current()->fd_table[i] && i < FD_LIMIT) i++;
 			if (thread_current()->fd_table[i] == NULL)
 				thread_current()->fd_table[i] = open_file;
 			else {

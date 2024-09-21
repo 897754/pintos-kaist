@@ -1,6 +1,9 @@
 #ifndef USERPROG_PROCESS_H
 #define USERPROG_PROCESS_H
 
+#define FD_LIMIT ((int) 32)
+#define CHILD_LIMIT ((int) 32)
+
 #include "threads/thread.h"
 
 tid_t process_create_initd (const char *file_name);
