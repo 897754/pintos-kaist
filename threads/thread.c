@@ -670,7 +670,6 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->child_code = 0;
 	t->is_user = false;
 	t->is_waited = false;
-	t->exec_file = NULL;
 
 	if (t == initial_thread)
 		t->parent = NULL;
@@ -679,6 +678,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 		t->parent = thread_current();
 		list_push_back(&thread_current()->child_list, &t->child_elem);
 	}
+		
 		
 	t->wait_sema = NULL;
 #endif

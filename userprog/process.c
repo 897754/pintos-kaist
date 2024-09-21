@@ -345,22 +345,8 @@ process_exit (void) {
 
 		list_remove(&curr->child_elem);
 
-		if (thread_current()->exec_file)
-			file_close(thread_current()->exec_file);
-			// file_allow_write(thread_current()->exec_file);	
-		thread_current()->exec_file = NULL;
-
-		// if(thread_current()->dead_list != NULL){
-		// 	for (int i = 0; i < 32; i ++){
-		// 		if (thread_current()->dead_list[i] != NULL)
-		// 			palloc_free_page(thread_current()->dead_list[i]);
-		// 	}
-		// }
-
-		if (thread_current()->is_waited){
+		if (thread_current()->is_waited)
 			sema_up(thread_current()->parent->wait_sema);
-		}
-
 	}
 	process_cleanup ();
 }
@@ -501,6 +487,9 @@ load (const char *file_name, struct intr_frame *if_) {
 		printf ("load: %s: open failed\n", argument);
 		goto done;
 	}
+	
+	file_deny_write(file);
+	thread_current()->exec_file = file;
 
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -598,13 +587,9 @@ load (const char *file_name, struct intr_frame *if_) {
 
 	success = true;
 
-	thread_current()->exec_file = file;
-	file_deny_write(thread_current()->exec_file);
-
 done:
 	/* We arrive here whether the load is successful or not. */
-	if (!success)
-		file_close (file);
+	file_close (file);
 	return success;
 }
 
