@@ -16,6 +16,7 @@
 #include "devices/input.h"
 #include "userprog/process.h"
 #include "threads/synch.h"
+#include "filesys/inode.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -91,10 +92,18 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		if (fn_copy == NULL)
 			return TID_ERROR;
 		strlcpy (fn_copy, file, PGSIZE);
+
+		if (thread_current()->exec_file != NULL)
+			file_close(thread_current()->exec_file);
+			// file_allow_write(thread_current()->exec_file);	
+		thread_current()->exec_file = NULL;
+		for (int i = 0; i<32; i++)
+			if (thread_current()->dead_list[i])
+				palloc_free_page(thread_current()->dead_list[i]);
 		
 		if (process_exec(fn_copy) < 0)
 		{
-			palloc_free_page(fn_copy);
+			// palloc_free_page(fn_copy);
 			f->R.rax = -1;
 			set_code_and_exit(-1);
 		}
@@ -203,8 +212,6 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		if (!check_valid_mem(buffer) || !check_valid_fd(fd)){
 			set_code_and_exit(-1);
 		} 
-
-		lock_acquire(&lock);
 		
 		if (fd == 1) 
 		{
@@ -219,13 +226,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			// 	return TID_ERROR;
 			// strlcpy (contents, (char *)buffer, PGSIZE);
 			
-			struct file* write_file 
+			struct file* write_file
 					= (struct file*)(thread_current()->fd_table[fd]);
 			f->R.rax = file_write(write_file, buffer, size);
 			
 			// palloc_free_page (contents);	
 		}
-		lock_release(&lock);	
 		break;
 	}
 	case SYS_SEEK:                   /* Change position in a file. */
@@ -255,6 +261,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		
 		file_close(close_file);
 		thread_current()->fd_table[fd] = NULL;
+		
+		// if (close_file == thread_current()->exec_file)
+		// 	file_allow_write(thread_current()->exec_file);	
+		// thread_current()->exec_file = NULL;
 	
 		break;
 	}
