@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "hash.h": "c",
+        "uninit.h": "c",
+        "round.h": "c",
+        "process.h": "c"
+    }
+}
