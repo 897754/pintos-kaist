@@ -3,6 +3,7 @@
 #include "threads/malloc.h"
 #include "vm/vm.h"
 #include "vm/inspect.h"
+//#include "userprog/process.h"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -51,6 +52,9 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
 		struct page* page = malloc(sizeof(struct page));
+		if (page == NULL) {
+			goto err;
+		}
 
 		switch (VM_TYPE(type))
 		{
@@ -79,10 +83,10 @@ spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	page = malloc(sizeof(struct page));
 	page->va = va;
 
-	hash_find(&spt->pages, &page->hash_elem);
+	struct page* ret = hash_entry(hash_find(&spt->pages, &page->hash_elem), struct page, hash_elem);
 	free(page);
 
-	return page;
+	return ret;
 }
 
 /* Insert PAGE into spt with validation. */
@@ -131,17 +135,18 @@ static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = NULL;
 
-	struct page* kva = spt_find_page(&thread_current()->spt, frame->kva);
+	void* kva = palloc_get_page(PAL_ZERO|PAL_USER);
 	
 	if(kva == NULL)
 	{
-		frame = vm_evict_frame();
+		// frame = vm_evict_frame();
+		PANIC ("TODO");
 	}
 	else
 	{
-		frame = palloc_get_page(PAL_ZERO|PAL_USER);
-		frame->page = NULL;
+		frame = malloc(sizeof(struct frame));
 		frame->kva = kva;
+		frame->page = NULL;
 	}
 
 	ASSERT (frame != NULL);
@@ -166,7 +171,9 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
 	struct page *page = NULL;
 	/* TODO: Validate the fault */
-	if(spt_find_page(spt, addr) == NULL) return false;
+	page = spt_find_page(spt, addr);
+
+	if(page == NULL) return false;
 	/* TODO: Your code goes here */
 	
 	return vm_do_claim_page (page);
@@ -186,6 +193,9 @@ vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
 	/* TODO: Fill this function */
 	page = spt_find_page(&thread_current()->spt, va);
+	if (page == NULL) {
+		return false;
+	}
 
 	return vm_do_claim_page (page);
 }

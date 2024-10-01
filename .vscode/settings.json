@@ -3,6 +3,11 @@
         "hash.h": "c",
         "uninit.h": "c",
         "round.h": "c",
-        "process.h": "c"
+        "process.h": "c",
+        "init.h": "c",
+        "file.h": "c",
+        "mmu.h": "c",
+        "vaddr.h": "c",
+        "stdbool.h": "c"
     }
 }
