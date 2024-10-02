@@ -235,7 +235,6 @@ int process_exec(void *f_name)
 	palloc_free_page(file_name);
 	if (!success)
 		return -1;
-
 	/* Start switched process. */
 	do_iret(&_if);
 	NOT_REACHED();
@@ -749,17 +748,17 @@ lazy_load_segment(struct page *page, void *aux)
 	struct aux* info = (struct aux*)aux;
 
 
-	file_seek(info->file, info->ofs);
-	
-	if(file_read(info->file, page->frame->kva, info->page_read_bytes) != (int)info->page_read_bytes)
+    file_seek(info->file, info->ofs);
+
+    if(file_read(info->file, page->frame->kva, info->page_read_bytes) != (int)info->page_read_bytes)
 	{
-		return false;
-	}
-	memset(page->frame->kva + info->page_read_bytes, 0, info->page_zero_bytes);
+        return false;  
+    }
+    memset(page->frame->kva + info->page_read_bytes, 0, info->page_zero_bytes);
+	
+    free(aux);
 
-	free(aux);
-
-	return true;
+    return true;
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -819,11 +818,16 @@ setup_stack(struct intr_frame *if_)
 {
 	bool success = false;
 	void *stack_bottom = (void *)(((uint8_t *)USER_STACK) - PGSIZE);
-
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
+	if (vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, 1)) {
+		success = vm_claim_page(stack_bottom);
+		if (success) {
+			if_->rsp = USER_STACK;
+		}
+	}
 
 	return success;
 }

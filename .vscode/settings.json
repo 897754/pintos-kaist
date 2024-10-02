@@ -11,6 +11,7 @@
         "stdbool.h": "c",
         "thread.h": "c",
         "loader.h": "c",
-        "vm.h": "c"
+        "vm.h": "c",
+        "malloc.h": "c"
     }
 }
