@@ -3,7 +3,12 @@
 #include "threads/malloc.h"
 #include "vm/vm.h"
 #include "vm/inspect.h"
-//#include "userprog/process.h"
+#include "hash.h"
+
+/* 태현 추가 */
+#include "threads/mmu.h"
+#include "userprog/process.h"
+#include <string.h>
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -51,26 +56,23 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
-		struct page* page = malloc(sizeof(struct page));
-		if (page == NULL) {
+		struct page *new_page = malloc (sizeof (struct page));
+		if (new_page == NULL) {
 			goto err;
 		}
-
-		switch (VM_TYPE(type))
-		{
-		case VM_ANON:
-			uninit_new(page, pg_round_down(upage), init, VM_TYPE(type), aux, anon_initializer);
-			break;
-		case VM_FILE:
-			uninit_new(page, pg_round_down(upage), init, VM_TYPE(type), aux, file_backed_initializer);
-			break;
-		
-		default:
-			break;
+		switch (VM_TYPE(type)) {
+			case VM_ANON :
+				uninit_new (new_page, pg_round_down(upage), init, VM_ANON, aux, anon_initializer);
+				break;
+			case VM_FILE :
+				uninit_new (new_page, pg_round_down(upage), init, VM_FILE, aux, file_backed_initializer);
+				break;
+			default :
+				goto err;
 		}
 
-		page->writable = writable;
-		return spt_insert_page(spt, page);
+		new_page->writable = writable;
+		return spt_insert_page(spt, new_page);
 	}
 err:
 	return false;
@@ -81,25 +83,29 @@ struct page *
 spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	struct page *page = NULL;
 	page = malloc(sizeof(struct page));
-	page->va = va;
 
-	struct page* ret = hash_entry(hash_find(&spt->pages, &page->hash_elem), struct page, hash_elem);
+	page->va = pg_round_down(va);
+	struct hash_elem *e;
+	e = hash_find (&spt->pages, &page->hash_elem);
 	free(page);
-
-	return ret;
+	if (e == NULL) {
+		return NULL;
+	}
+	return hash_entry (e, struct page, hash_elem);
 }
 
 /* Insert PAGE into spt with validation. */
 bool
 spt_insert_page (struct supplemental_page_table *spt UNUSED,
 		struct page *page UNUSED) {
-	if(page == NULL)
-		return false;
-
-	if(hash_insert(&spt->pages, &page->hash_elem))
-		return false;
-
-	return true;
+	int succ = false;
+	struct hash_elem *e;
+	e = hash_find (&spt->pages, &page->hash_elem);
+	if (e != NULL) {
+		return succ;
+	}
+	hash_insert (&spt->pages, &page->hash_elem);
+	return succ = true;
 }
 
 void
@@ -171,6 +177,13 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
 	struct page *page = NULL;
 	/* TODO: Validate the fault */
+	if (addr == NULL){
+        return false;
+	}
+	if (is_kernel_vaddr(addr)) {
+        return false;
+	}
+
 	page = spt_find_page(spt, addr);
 
 	if(page == NULL) return false;

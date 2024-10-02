@@ -25,15 +25,14 @@ enum vm_type {
 	VM_MARKER_END = (1 << 31),
 };
 
-#include "threads/mmu.h"
-#include "threads/vaddr.h"
-//#include "userprog/process.h"
+
 #include "vm/uninit.h"
 #include "vm/anon.h"
 #include "vm/file.h"
 #ifdef EFILESYS
 #include "filesys/page_cache.h"
 #endif
+
 
 struct page_operations;
 struct thread;

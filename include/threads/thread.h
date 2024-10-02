@@ -6,8 +6,8 @@
 #include <bitmap.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
-#define VM
-#define USERPROG
+// #define VM
+// #define USERPROG
 #ifdef VM
 #include "vm/vm.h"
 #endif

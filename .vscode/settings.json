@@ -8,6 +8,9 @@
         "file.h": "c",
         "mmu.h": "c",
         "vaddr.h": "c",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "thread.h": "c",
+        "loader.h": "c",
+        "vm.h": "c"
     }
 }

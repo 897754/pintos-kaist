@@ -80,7 +80,7 @@ put_user(uint8_t *udst, uint8_t byte)
 void isLegalAddr(void *ptr)
 {
 	struct thread *th = thread_current();
-	if (is_kernel_vaddr(ptr) || ptr == NULL || pml4_get_page(th->pml4, ptr) == NULL)
+	if (is_kernel_vaddr(ptr) || ptr == NULL)
 	{
 		exit(-1);
 	}
@@ -246,6 +246,7 @@ int exec(const char *cmd_line)
 	char *cmdCopy = palloc_get_page(0);
 
 	file_close(thread_current()->execFile);
+	thread_current()->execFile = NULL;
 	strlcpy(cmdCopy, cmd_line, PGSIZE);
 	if (process_exec(cmdCopy))
 	{
